@@ -15,14 +15,24 @@ jobs:
         include:
           - os: macos-latest
             target: x86_64-apple-darwin
+            binary_postfix: ""
+            release_name: macos-x86_64
           - os: macos-latest
             target: aarch64-apple-darwin
+            binary_postfix: ""
+            release_name: macos-aarch64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            binary_postfix: ""
+            release_name: linux-x86_64-gnu
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
+            binary_postfix: ""
+            release_name: linux-aarch64-gnu
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            binary_postfix: ".exe"
+            release_name: windows-x86_64
 
     steps:
       - name: Install Rust toolchain
@@ -45,4 +55,25 @@ jobs:
       - name: Compiling for ${{ matrix.target }}
         if: matrix.target != 'aarch64-unknown-linux-gnu'
         run: cargo build --release --target ${{ matrix.target }}
+      - name: Packaging final binary
+        shell: bash
+        run: |
+          cd target/${{ matrix.target }}/release
+          BINARY_NAME=helloworld-rs${{ matrix.binary_postfix }}
+          strip $BINARY_NAME
+          tar czvf ${{ matrix.release_name }}.tar.gz $BINARY_NAME
+
+          if [[ ${{ runner.os }} == 'Windows' ]]; then
+            certutil -hashfile ${{ matrix.release_name }}.tar.gz sha256 | grep -E [A-Fa-f0-9]{64} > ${{ matrix.release_name }}.tar.gz.sha256
+          else
+            shasum -a 256 ${{ matrix.release_name }}.tar.gz > ${{ matrix.release_name }}.tar.gz.sha256
+          fi
+      - name: Releasing assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz
+            target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
