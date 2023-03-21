@@ -62,7 +62,11 @@ jobs:
         run: |
           cd target/${{ matrix.target }}/release
           BINARY_NAME=helloworld-rs${{ matrix.binary_postfix }}
-          strip $BINARY_NAME
+          if [[ ${{ matrix.target }} == 'aarch64-unknown-linux-gnu' ]]; then
+            aarch64-linux-gnu-strip $BINARY_NAME
+          else
+            strip $BINARY_NAME
+          fi
           tar czvf ${{ matrix.release_name }}.tar.gz $BINARY_NAME
 
           if [[ ${{ runner.os }} == 'Windows' ]]; then
