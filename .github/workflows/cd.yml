@@ -6,14 +6,24 @@ on:
       - "v*.*.*"
 
 jobs:
-  build-linux-cross:
-    name: Build for Linux
-    runs-on: ubuntu-latest
+  cross_building:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - aarch64-unknown-linux-gnu
+        os: [ macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
     steps:
       - name: Install Rust toolchain
         run: |
@@ -24,7 +34,7 @@ jobs:
           rustup target add --toolchain stable ${{ matrix.target }}
       - name: Checking out sources
         uses: actions/checkout@v3
-      - name: Running cross build
+      - name: Compiling for ${{ matrix.target }}
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt update
@@ -32,7 +42,7 @@ jobs:
           cargo build --release --target ${{ matrix.target }}
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-      - name: Running cargo build
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
+      - name: Compiling for ${{ matrix.target }}
+        if: matrix.target != 'aarch64-unknown-linux-gnu'
         run: cargo build --release --target ${{ matrix.target }}
 
