@@ -8,6 +8,8 @@ on:
 jobs:
   cross_building:
     name: Build for ${{ matrix.os }}
+    permissions:
+      contents: write
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
