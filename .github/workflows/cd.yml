@@ -26,6 +26,7 @@ jobs:
       - name: Running cargo build
         uses: actions-rs/cargo@v1
         with:
+          uses-cross: true
           command: build
           toolchain: ${{ matrix.rust }}
           args: --release --target ${{ matrix.target }}
