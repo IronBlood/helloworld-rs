@@ -23,11 +23,19 @@ jobs:
           target: ${{ matrix.target }}
       - name: Checking out sources
         uses: actions/checkout@v3
-      - name: Running cargo build
+      - name: Running cross build
+        if: matrix.target != 'x86_64-unknown-linux-gnu'
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
           toolchain: ${{ matrix.rust }}
           args: --release --target ${{ matrix.target }}
+      - name: Running cargo build
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          toolchain: ${{ matrix.rust }}
+          args: --release
 
