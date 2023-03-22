@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-latest, ubuntu-latest, windows-latest]
+        os: [ macos-latest, ubuntu-latest ]
         include:
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -31,10 +31,6 @@ jobs:
             target: aarch64-unknown-linux-gnu
             binary_postfix: ""
             release_name: linux-aarch64-gnu
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            binary_postfix: ".exe"
-            release_name: windows-x86_64
 
     steps:
       - name: Install Rust toolchain
@@ -69,17 +65,45 @@ jobs:
           fi
           tar czvf ${{ matrix.release_name }}.tar.gz $BINARY_NAME
 
-          if [[ ${{ runner.os }} == 'Windows' ]]; then
-            certutil -hashfile ${{ matrix.release_name }}.tar.gz sha256 | grep -E [A-Fa-f0-9]{64} > ${{ matrix.release_name }}.tar.gz.sha256
-          else
-            shasum -a 256 ${{ matrix.release_name }}.tar.gz > ${{ matrix.release_name }}.tar.gz.sha256
-          fi
+          shasum -a 256 ${{ matrix.release_name }}.tar.gz > ${{ matrix.release_name }}.tar.gz.sha256
       - name: Releasing assets
         uses: softprops/action-gh-release@v1
         with:
           files: |
             target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz
             target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_for_windows:
+    name: Build for Windows
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - name: Install Rust toolchain
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup default stable
+          rustup override set stable
+      - name: Checking out sources
+        uses: actions/checkout@v3
+      - name: Compiling
+        run: cargo build --release
+      - name: Packaging final binary
+        shell: bash
+        run: |
+          cd target/release
+          strip helloworld-rs.exe
+          tar czvf windows-x86_64.tar.gz helloworld-rs.exe
+          certutil -hashfile windows-x86_64.tar.gz sha256 | grep -E [A-Fa-f0-9]{64} > windows-x86_64.tar.gz.sha256
+      - name: Releasing assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/release/windows-x86_64.tar.gz
+            target/release/windows-x86_64.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
