@@ -42,22 +42,24 @@ jobs:
       - name: Packaging final binary
         shell: bash
         run: |
+          BINARY_NAME=$(grep -E '^name' Cargo.toml | awk '{print $3}' | sed 's/"//g')
+          VERSION=$(grep -E '^version' Cargo.toml | awk '{print $3}' | sed 's/"//g')
+          RELEASE_NAME=$BINARY_NAME-$VERSION-${{ matrix.release_name }}.tar.gz
           cd target/${{ matrix.target }}/release
-          BINARY_NAME=helloworld-rs
           if [[ ${{ matrix.target }} == 'aarch64-unknown-linux-gnu' ]]; then
             aarch64-linux-gnu-strip $BINARY_NAME
           else
             strip $BINARY_NAME
           fi
-          tar czvf ${{ matrix.release_name }}.tar.gz $BINARY_NAME
+          tar czvf $RELEASE_NAME $BINARY_NAME
 
-          shasum -a 256 ${{ matrix.release_name }}.tar.gz > ${{ matrix.release_name }}.tar.gz.sha256
+          shasum -a 256 $RELEASE_NAME > $RELEASE_NAME.sha256
       - name: Releasing assets
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz
-            target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz.sha256
+            target/${{ matrix.target }}/release/*${{ matrix.release_name }}.tar.gz
+            target/${{ matrix.target }}/release/*${{ matrix.release_name }}.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -89,17 +91,19 @@ jobs:
       - name: Packaging final binary
         shell: bash
         run: |
+          BINARY_NAME=$(grep -E '^name' Cargo.toml | awk '{print $3}' | sed 's/"//g')
+          VERSION=$(grep -E '^version' Cargo.toml | awk '{print $3}' | sed 's/"//g')
+          RELEASE_NAME=$BINARY_NAME-$VERSION-${{ matrix.release_name }}.tar.gz
           cd target/${{ matrix.target }}/release
-          BINARY_NAME=helloworld-rs
           strip $BINARY_NAME
-          tar czvf ${{ matrix.release_name }}.tar.gz $BINARY_NAME
-          shasum -a 256 ${{ matrix.release_name }}.tar.gz > ${{ matrix.release_name }}.tar.gz.sha256
+          tar czvf $RELEASE_NAME $BINARY_NAME
+          shasum -a 256 $RELEASE_NAME > $RELEASE_NAME.sha256
       - name: Releasing assets
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz
-            target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz.sha256
+            target/${{ matrix.target }}/release/*${{ matrix.release_name }}.tar.gz
+            target/${{ matrix.target }}/release/*${{ matrix.release_name }}.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -123,16 +127,19 @@ jobs:
       - name: Packaging final binary
         shell: bash
         run: |
+          BINARY_NAME=$(grep -E '^name' Cargo.toml | awk '{print $3}' | sed 's/"//g')
+          VERSION=$(grep -E '^version' Cargo.toml | awk '{print $3}' | sed 's/"//g')
+          RELEASE_NAME=$BINARY_NAME-$VERSION-windows-x86_64.tar.gz
           cd target/release
-          strip helloworld-rs.exe
-          tar czvf windows-x86_64.tar.gz helloworld-rs.exe
-          certutil -hashfile windows-x86_64.tar.gz sha256 | grep -E [A-Fa-f0-9]{64} > windows-x86_64.tar.gz.sha256
+          strip $BINARY_NAME.exe
+          tar czvf $RELEASE_NAME $BINARY_NAME.exe
+          certutil -hashfile $RELEASE_NAME sha256 | grep -E [A-Fa-f0-9]{64} > $RELEASE_NAME.sha256
       - name: Releasing assets
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            target/release/windows-x86_64.tar.gz
-            target/release/windows-x86_64.tar.gz.sha256
+            target/release/*windows-x86_64.tar.gz
+            target/release/*windows-x86_64.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
