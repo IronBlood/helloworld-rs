@@ -13,16 +13,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-latest, ubuntu-latest ]
+        os: [ ubuntu-latest ]
         include:
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            binary_postfix: ""
-            release_name: macos-x86_64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            binary_postfix: ""
-            release_name: macos-aarch64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary_postfix: ""
@@ -74,6 +66,49 @@ jobs:
             target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_for_macos:
+    name: Build for macOS
+    permissions:
+      contents: write
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [ x86_64-apple-darwin, aarch64-apple-darwin ]
+        include:
+          - target: x86_64-apple-darwin
+            release_name: macos-x86_64
+          - target: aarch64-apple-darwin
+            release_name: macos-aarch64
+    steps:
+      - name: Install Rust toolchain
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup default stable
+          rustup override set stable
+          rustup target add --toolchain stable ${{ matrix.target }}
+      - name: Checking out sources
+        uses: actions/checkout@v3
+      - name: Compiling for ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }}
+      - name: Packaging final binary
+        shell: bash
+        run: |
+          cd target/${{ matrix.target }}/release
+          BINARY_NAME=helloworld-rs
+          strip $BINARY_NAME
+          tar czvf ${{ matrix.release_name }}.tar.gz $BINARY_NAME
+          shasum -a 256 ${{ matrix.release_name }}.tar.gz > ${{ matrix.release_name }}.tar.gz.sha256
+      - name: Releasing assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz
+            target/${{ matrix.target }}/release/${{ matrix.release_name }}.tar.gz.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
   build_for_windows:
     name: Build for Windows
